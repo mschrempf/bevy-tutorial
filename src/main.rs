@@ -5,6 +5,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_startup_system(spawn_player)
         .add_startup_system(spawn_camera)
+        .add_system(player_movement)
+        .add_system(confine_player_movement)
         .run();
 }
 
@@ -35,4 +37,48 @@ fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Primar
         transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.),
         ..default()
     });
+}
+
+fn player_movement(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    time: Res<Time>,
+) {
+    if let Ok(mut transform) = player_query.get_single_mut() {
+        let mut direction = Vec3::ZERO;
+
+        if keyboard_input.any_pressed([KeyCode::Left, KeyCode::A]) {
+            direction.x -= 1.0;
+        }
+
+        if keyboard_input.any_pressed([KeyCode::Right, KeyCode::D]) {
+            direction.x += 1.0;
+        }
+
+        if keyboard_input.any_pressed([KeyCode::Up, KeyCode::W]) {
+            direction.y += 1.0;
+        }
+
+        if keyboard_input.any_pressed([KeyCode::Down, KeyCode::S]) {
+            direction.y -= 1.0;
+        }
+
+        direction = direction.normalize_or_zero();
+
+        let player_speed = 500.0;
+
+        transform.translation += direction * player_speed * time.delta_seconds();
+    }
+}
+
+fn confine_player_movement(
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+) {
+    let window = window_query.get_single().unwrap();
+
+    if let Ok(mut t) = player_query.get_single_mut() {
+        t.translation.x = t.translation.x.clamp(0.0, window.width());
+        t.translation.y = t.translation.y.clamp(0.0, window.height());
+    }
 }
