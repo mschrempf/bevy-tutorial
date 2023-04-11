@@ -1,65 +1,38 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::window, window::PrimaryWindow};
 
 fn main() {
     App::new()
-        .add_plugin(PeoplePlugin)
         .add_plugins(DefaultPlugins)
+        .add_startup_system(spawn_player)
+        .add_startup_system(spawn_camera)
         .run();
 }
 
-fn setup(mut commands: Commands) {
+#[derive(Component)]
+struct Player {}
+
+fn spawn_player(
+    mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    assert_server: Res<AssetServer>,
+) {
+    let window = window_query.get_single().unwrap();
+
     commands.spawn((
-        Person {
-            name: "Matthias".to_string(),
+        SpriteBundle {
+            transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
+            texture: assert_server.load("sprites/ball_blue_large.png"),
+            ..default()
         },
-        Employed { job: Job::Engineer },
+        Player {},
     ));
-    commands.spawn((
-        Person {
-            name: "Katja".to_string(),
-        },
-        Employed { job: Job::Forester },
-    ));
-    commands.spawn(Person {
-        name: "Frodo".to_string(),
+}
+
+fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<PrimaryWindow>>) {
+    let window = window_query.get_single().unwrap();
+
+    commands.spawn(Camera2dBundle {
+        transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.),
+        ..default()
     });
-}
-
-struct PeoplePlugin;
-
-impl Plugin for PeoplePlugin {
-    fn build(&self, app: &mut App) {
-        app.add_startup_system(setup)
-            .add_system(print_names)
-            .add_system(persons_with_jobs)
-            .add_system(persons_and_jobs);
-    }
-}
-
-fn print_names(person_query: Query<&Person>) {
-    person_query.for_each(|person| println!("Hello {}", person.name));
-}
-
-fn persons_with_jobs(person_query: Query<&Person, With<Employed>>) {
-    person_query.for_each(|person| println!("Hello {}, you have a job :-)", person.name));
-}
-
-fn persons_and_jobs(q: Query<(&Person, &Employed)>) {
-    q.for_each(|(p, e)| println!("{} works as a {:?}", p.name, e.job));
-}
-
-#[derive(Component)]
-struct Person {
-    name: String,
-}
-
-#[derive(Component)]
-struct Employed {
-    job: Job,
-}
-
-#[derive(Debug)]
-enum Job {
-    Engineer,
-    Forester,
 }
