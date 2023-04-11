@@ -4,6 +4,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_startup_system(spawn_player)
+        .add_startup_system(spawn_enemies)
         .add_startup_system(spawn_camera)
         .add_system(player_movement)
         .add_system(confine_player_movement)
@@ -13,17 +14,20 @@ fn main() {
 #[derive(Component)]
 struct Player {}
 
+#[derive(Component)]
+struct Enemy {}
+
 fn spawn_player(
     mut commands: Commands,
     window_query: Query<&Window, With<PrimaryWindow>>,
-    assert_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
 ) {
     let window = window_query.get_single().unwrap();
 
     commands.spawn((
         SpriteBundle {
             transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
-            texture: assert_server.load("sprites/ball_blue_large.png"),
+            texture: asset_server.load("sprites/ball_blue_large.png"),
             ..default()
         },
         Player {},
@@ -37,6 +41,30 @@ fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Primar
         transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.),
         ..default()
     });
+}
+
+fn spawn_enemies(
+    mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    asset_server: Res<AssetServer>,
+) {
+    let window = window_query.get_single().unwrap();
+
+    let nof_enemies = 4;
+
+    for _ in (0..nof_enemies) {
+        let x: f32 = rand::random();
+        let y: f32 = rand::random();
+
+        commands.spawn((
+            SpriteBundle {
+                transform: Transform::from_xyz(window.width() * x, window.height() * y, 0.0),
+                texture: asset_server.load("sprites/ball_red_large.png"),
+                ..default()
+            },
+            Enemy {},
+        ));
+    }
 }
 
 fn player_movement(
